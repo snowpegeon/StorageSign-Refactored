@@ -46,10 +46,40 @@ public final class EnchantHelper {
      * @return the matching enchantment, or {@code null} if none found.
      */
     public static Enchantment fromPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            LOG.warning("Empty enchantment prefix");
+            return null;
+        }
+
+        Enchantment exactShortMatch = null;
+        Enchantment exactKeyMatch = null;
+        Enchantment prefixMatch = null;
+        boolean ambiguousPrefix = false;
+
         for (Enchantment e : Registry.ENCHANTMENT) {
-            if (e.getKey().getKey().startsWith(prefix)) {
-                return e;
+            String key = e.getKey().getKey();
+            if (toShortKey(e).equals(prefix) && exactShortMatch == null) {
+                exactShortMatch = e;
             }
+            if (key.equals(prefix)) {
+                exactKeyMatch = e;
+            }
+            if (key.startsWith(prefix)) {
+                if (prefixMatch == null) {
+                    prefixMatch = e;
+                } else if (!Objects.equals(prefixMatch, e)) {
+                    ambiguousPrefix = true;
+                }
+            }
+        }
+
+        if (exactKeyMatch != null) return exactKeyMatch;
+        if (exactShortMatch != null) return exactShortMatch;
+        if (prefixMatch != null) {
+            if (ambiguousPrefix) {
+                LOG.log(Level.WARNING, "Ambiguous enchantment prefix: {0}; using first registry match", prefix);
+            }
+            return prefixMatch;
         }
         LOG.log(Level.WARNING, "No enchantment found for prefix: {0}", prefix);
         return null;

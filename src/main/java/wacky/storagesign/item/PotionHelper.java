@@ -208,21 +208,38 @@ public final class PotionHelper {
         }
 
         // Generic lookup: find a PotionType whose base name starts with shortName
-        String prefix = CODE_EXTENDED.equals(code) ? LONG_PREFIX
-                      : CODE_STRONG.equals(code)   ? STRONG_PREFIX
-                      : "";
         for (PotionType type : PotionType.values()) {
-            String base = type.name();
-            if (base.startsWith(LONG_PREFIX))    base = base.substring(LONG_PREFIX.length());
-            else if (base.startsWith(STRONG_PREFIX)) base = base.substring(STRONG_PREFIX.length());
+            String typeName = type.name();
+            if (!matchesEnhanceCode(typeName, code)) continue;
+
+            String base = stripEnhancePrefix(typeName);
             String gen = base.length() <= 5 ? base : base.substring(0, 5);
-            if (gen.equals(shortName) && type.name().startsWith(prefix)) {
+            if (gen.equals(shortName)) {
                 return type;
             }
         }
         LOG.log(Level.WARNING, "Could not resolve potion type: shortName={0}, code={1}",
             new Object[]{shortName, code});
         return null;
+    }
+
+    private static boolean matchesEnhanceCode(String typeName, String code) {
+        return switch (code) {
+            case CODE_NORMAL -> !typeName.startsWith(LONG_PREFIX) && !typeName.startsWith(STRONG_PREFIX);
+            case CODE_EXTENDED -> typeName.startsWith(LONG_PREFIX);
+            case CODE_STRONG -> typeName.startsWith(STRONG_PREFIX);
+            default -> false;
+        };
+    }
+
+    private static String stripEnhancePrefix(String typeName) {
+        if (typeName.startsWith(LONG_PREFIX)) {
+            return typeName.substring(LONG_PREFIX.length());
+        }
+        if (typeName.startsWith(STRONG_PREFIX)) {
+            return typeName.substring(STRONG_PREFIX.length());
+        }
+        return typeName;
     }
 
     /**

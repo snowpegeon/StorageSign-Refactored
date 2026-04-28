@@ -60,7 +60,7 @@ public final class ConfigLoader {
         plugin.reloadConfig();
         FileConfiguration cfg = plugin.getConfig();
 
-        noPermission      = cfg.getString(KEY_NO_PERMISSION, "You do not have permission.");
+        noPermission      = cfg.getString(KEY_NO_PERMISSION, "You don't have permission");
         logLevel          = cfg.getString(KEY_LOG_LEVEL, "INFO");
         manualImport      = cfg.getBoolean(KEY_MANUAL_IMPORT, true);
         manualExport      = cfg.getBoolean(KEY_MANUAL_EXPORT, true);
@@ -68,9 +68,9 @@ public final class ConfigLoader {
         autoExport        = cfg.getBoolean(KEY_AUTO_EXPORT, true);
         autocollect       = cfg.getBoolean(KEY_AUTOCOLLECT, true);
         hardrecipe        = cfg.getBoolean(KEY_HARDRECIPE, false);
-        divideLimit       = cfg.getInt(KEY_DIVIDE_LIMIT, 1);
-        sneakDivideLimit  = cfg.getInt(KEY_SNEAK_DIVIDE_LIMIT, 1);
-        maxStackSize      = cfg.getInt(KEY_MAX_STACK_SIZE, 64);
+        divideLimit       = cfg.getInt(KEY_DIVIDE_LIMIT, 345600);
+        sneakDivideLimit  = cfg.getInt(KEY_SNEAK_DIVIDE_LIMIT, 34560);
+        maxStackSize      = cfg.getInt(KEY_MAX_STACK_SIZE, 16);
         noBud             = cfg.getBoolean(KEY_NO_BUD, false);
         fallingBlockItemSS = cfg.getBoolean(KEY_FALLING_BLOCK, false);
         bannerDebug       = cfg.getBoolean(KEY_BANNER_DEBUG, false);
