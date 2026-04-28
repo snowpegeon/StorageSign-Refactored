@@ -1,0 +1,35 @@
+# StorageSign Configuration
+no-permisson: You don't have permission
+
+# Log level: OFF / SEVERE / WARNING / INFO / CONFIG / FINE / FINER / FINEST / ALL
+log-level: INFO
+
+# Allow players to manually push/pull items by right-clicking with the matching item
+manual-import: true
+manual-export: true
+
+# Allow hoppers/minecarts to automatically move items into/out of StorageSigns
+auto-import: true
+auto-export: true
+
+# Automatically collect dropped items into a held StorageSign
+autocollect: true
+
+# Harder crafting recipe (requires Ender Chest instead of a second Chest)
+hardrecipe: false
+
+# Maximum items to split per right-click export
+divide-limit: 345600
+sneak-divide-limit: 34560
+
+# Maximum number of StorageSigns that can be stacked as a single item
+max-stack-size: 16
+
+# Prevent BUD pulses from breaking adjacent StorageSigns
+no-bud: false
+
+# Drop adjacent StorageSigns when a falling block lands on their support block
+falling-block-itemSS: false
+
+# Debug: log the raw ItemMeta string for every right-clicked item (very verbose)
+banner-debug: false

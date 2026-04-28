@@ -1,0 +1,35 @@
+name: StorageSign
+main: wacky.storagesign.StorageSignCore
+version: 3.0.0
+author: wackyls6
+api-version: 1.21
+softdepend: [WorldGuard]
+website: https://github.com/snowpegeon/StorageSign
+permissions:
+    storagesign.*:
+        description: All StorageSign permissions
+        children:
+            storagesign.use: true
+            storagesign.craft: true
+            storagesign.place: true
+            storagesign.break: true
+            storagesign.create: true
+            storagesign.autocollect: true
+    storagesign.use:
+        description: Allows you to use a storagesign
+        default: true
+    storagesign.craft:
+        description: Allows you to craft a storagesign
+        default: true
+    storagesign.place:
+        description: Allows you to place a storagesign
+        default: true
+    storagesign.break:
+        description: Allows you to break a storagesign
+        default: true
+    storagesign.create:
+        description: Allows you to create a storagesign from sign text
+        default: op
+    storagesign.autocollect:
+        description: Collect picked-up items directly into a held StorageSign
+        default: true
