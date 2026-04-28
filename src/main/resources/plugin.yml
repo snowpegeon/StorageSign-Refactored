@@ -1,13 +1,14 @@
 name: StorageSign
 main: wacky.storagesign.StorageSignCore
-version: ${project.version}
+version: ${version}
+description: StorageSign Plugin for Spigot. You can 2billion items storeing to wooden sign.
 author: wackyls6
-api-version: 1.21
+api-version: 1.21.4
+depend: [Logger, FarmNBT]
 softdepend: [WorldGuard]
-website: https://github.com/snowpegeon/StorageSign
+website: https://github.com/wackyls6/StorageSign
 permissions:
     storagesign.*:
-        description: All StorageSign permissions
         children:
             storagesign.use: true
             storagesign.craft: true
@@ -28,8 +29,8 @@ permissions:
         description: Allows you to break a storagesign
         default: true
     storagesign.create:
-        description: Allows you to create a storagesign from sign text
+        description: Allows you to create a storagesign
         default: op
     storagesign.autocollect:
-        description: Collect picked-up items directly into a held StorageSign
+        description: Collect your picked items
         default: true
