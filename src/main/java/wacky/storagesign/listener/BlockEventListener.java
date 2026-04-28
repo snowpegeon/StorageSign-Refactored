@@ -48,17 +48,20 @@ public final class BlockEventListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
-        if (!player.hasPermission("storagesign.break")) {
-            player.sendMessage("§c" + ConfigLoader.getNoPermission());
-            event.setCancelled(true);
-            return;
-        }
+        Block block = event.getBlock();
 
-        if (StorageSign.isStorageSign(event.getBlock())) {
+        // Permission check applies ONLY to StorageSign blocks (matches original behavior).
+        // Checking unconditionally would block all block-breaks for players without this permission.
+        if (StorageSign.isStorageSign(block)) {
+            if (!player.hasPermission("storagesign.break")) {
+                player.sendMessage("§c" + ConfigLoader.getNoPermission());
+                event.setCancelled(true);
+                return;
+            }
             event.setDropItems(false);
         }
 
-        dropRelativeSigns(event.getBlock());
+        dropRelativeSigns(block);
     }
 
     // ── BlockPlaceEvent ────────────────────────────────────────────────────────
