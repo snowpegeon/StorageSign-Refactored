@@ -165,7 +165,7 @@ public final class ExportSignTask extends BukkitRunnable {
             case NETHER_WART, SUGAR, REDSTONE, GLOWSTONE_DUST, GUNPOWDER,
                  RABBIT_FOOT, GLISTERING_MELON_SLICE, GOLDEN_CARROT, MAGMA_CREAM,
                  GHAST_TEAR, SPIDER_EYE, FERMENTED_SPIDER_EYE, DRAGON_BREATH,
-                 PUFFERFISH, TURTLE_HELMET, PHANTOM_MEMBRANE, BREEZE_ROD -> true;
+                 PUFFERFISH, TURTLE_SCUTE, PHANTOM_MEMBRANE, BREEZE_ROD -> true;
             default -> false;
         };
     }

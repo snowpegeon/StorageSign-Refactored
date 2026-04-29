@@ -50,8 +50,8 @@ public final class BlockEventListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getBlock();
 
-        // Permission check applies ONLY to StorageSign blocks (matches original behavior).
-        // Checking unconditionally would block all block-breaks for players without this permission.
+        // Permission check applies ONLY to StorageSign blocks (intentional fix over original).
+        // Original applied this to ALL block breaks, preventing players from breaking any block.
         if (StorageSign.isStorageSign(block)) {
             if (!player.hasPermission("storagesign.break")) {
                 player.sendMessage("§c" + ConfigLoader.getNoPermission());
