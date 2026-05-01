@@ -50,9 +50,11 @@ Spigot/Paper 向け Minecraft プラグインです。
 ### 削除・廃止された機能
 
 - `plugin.yml` の外部プラグイン依存宣言を廃止
-  - 旧版の `depend: [Logger, FarmNBT]` と `softdepend: [WorldGuard]` は現行で削除。
+  - 旧版の `depend: [Logger, FarmNBT]` と `softdepend: [WorldGuard]` を削除。
+  - `Logger` は外部プラグイン `com.github.teruteru128.logger.Logger` への依存であり、本リファクタリング版では標準 JDK ログ API へ移行したため不要。
+  - `FarmNBT` および `WorldGuard` は旧版コードにも実装が存在しない宣言のみの依存であったため、削除しても機能上の影響はない。
 - 外部 Logger ライブラリ連携を廃止
-  - 旧版の `com.github.teruteru128.logger.Logger` 前提から、標準ログ API ベースへ移行。
+  - 旧版の `com.github.teruteru128.logger.Logger` 前提から、`java.util.logging.Logger`（JDK 標準）ベースへ移行。
 - ビルド時の `project.properties` + `maven-resources-plugin` コピー運用を廃止
   - 現行は `maven-shade-plugin` によるパッケージング中心へ移行。
 
