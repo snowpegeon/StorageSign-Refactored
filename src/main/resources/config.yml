@@ -8,7 +8,7 @@ log-level: INFO
 manual-import: true
 manual-export: true
 
-# Allow hoppers/minecarts to automatically move items into/out of StorageSigns
+# Allow transport blocks (hopper/dropper/dispenser/crafter/hopper minecart) to automatically move items into/out of StorageSigns
 auto-import: true
 auto-export: true
 

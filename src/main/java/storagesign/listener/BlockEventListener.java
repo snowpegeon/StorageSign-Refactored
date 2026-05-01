@@ -4,9 +4,7 @@ import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.block.data.Directional;
 import org.bukkit.DyeColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -21,6 +19,10 @@ import org.bukkit.block.sign.Side;
 import storagesign.ConfigLoader;
 import storagesign.StorageSign;
 import storagesign.StorageSignCore;
+import storagesign.adjacency.SsAdjacencyMatch;
+import storagesign.adjacency.SsAdjacencyPurpose;
+import storagesign.adjacency.SsAdjacencyQuery;
+import storagesign.adjacency.SsAdjacencyResolver;
 import storagesign.registry.MaterialRegistry;
 
 /**
@@ -34,9 +36,7 @@ import storagesign.registry.MaterialRegistry;
 public final class BlockEventListener implements Listener {
 
     private static final Logger LOG = Logger.getLogger(BlockEventListener.class.getName());
-    private static final BlockFace[] SCAN_FACES = {
-        BlockFace.UP, BlockFace.SOUTH, BlockFace.NORTH, BlockFace.EAST, BlockFace.WEST
-    };
+    private static final SsAdjacencyResolver ADJACENCY_RESOLVER = SsAdjacencyResolver.defaultResolver();
 
     public BlockEventListener(StorageSignCore plugin) {
     }
@@ -133,34 +133,18 @@ public final class BlockEventListener implements Listener {
         // ベースブロック自身が StorageSign の場合のみ処理する。
         tryDropStorageSign(block);
 
-        dropAttachedStorageSigns(block);
+        dropAttachedStorageSignsByAdjacency(block);
     }
 
     /**
      * 対象ブロックを支持先にしている StorageSign のみをドロップする。
      * FallingBlock によるブロック変化では、ベースブロック自身は看板になり得ないためこちらを使う。
      */
-    public static void dropAttachedStorageSigns(Block block) {
-        Block up = block.getRelative(BlockFace.UP);
-        if (MaterialRegistry.SIGN_MATERIALS.contains(up.getType())) {
-            tryDropStorageSign(up);
-        }
-
-        // 吊り看板（*_HANGING_SIGN）は支持ブロックの下面にも取り付けられる。
-        // 下方向は通常看板を誤検出しないよう、HANGING_SIGN のみ対象にする。
-        Block down = block.getRelative(BlockFace.DOWN);
-        if (isCeilingHangingSign(down.getType())) {
-            tryDropStorageSign(down);
-        }
-
-        for (int i = 1; i < SCAN_FACES.length; i++) {
-            BlockFace face = SCAN_FACES[i];
-            Block relBlock = block.getRelative(face);
-
-            if (!MaterialRegistry.WALL_SIGN_MATERIALS.contains(relBlock.getType())) continue;
-            if (!(relBlock.getBlockData() instanceof Directional directional)) continue;
-            if (directional.getFacing() != face) continue;
-            tryDropStorageSign(relBlock);
+    public static void dropAttachedStorageSignsByAdjacency(Block block) {
+        for (SsAdjacencyMatch match : ADJACENCY_RESOLVER.findAll(
+            new SsAdjacencyQuery(block, null, SsAdjacencyPurpose.ATTACHED_SIGN_DROP)
+        )) {
+            dropSingleStorageSign(match.signBlock(), match.signBlock().getType(), match.storageSign());
         }
     }
 
@@ -188,9 +172,5 @@ public final class BlockEventListener implements Listener {
         LOG.fine(() -> "Dropped StorageSign item at " + signBlock.getLocation());
     }
 
-    private static boolean isCeilingHangingSign(Material material) {
-        if (material == null) return false;
-        String name = material.name();
-        return name.endsWith("_HANGING_SIGN") && !name.contains("_WALL_");
-    }
 }
+

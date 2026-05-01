@@ -2,14 +2,16 @@ package storagesign.listener;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
-import org.bukkit.block.Sign;
-import org.bukkit.block.data.Directional;
+import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -18,45 +20,40 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.block.BlockFace;
 
 import storagesign.ConfigLoader;
-import storagesign.StorageSign;
 import storagesign.StorageSignCore;
-import storagesign.registry.MaterialRegistry;
+import storagesign.adjacency.SsAdjacencyMatch;
+import storagesign.adjacency.SsAdjacencyPurpose;
+import storagesign.adjacency.SsAdjacencyQuery;
+import storagesign.adjacency.SsAdjacencyResolver;
 import storagesign.task.ExportSignTask;
 
 /**
- * StorageSign を含むホッパー駆動のインベントリ移送を処理する。
+ * StorageSign を含む自動インベントリ移送を処理する。
  *
  * <h3>アーキテクチャ</h3>
  * StorageSign は看板ブロックであり Bukkit {@link Inventory} を持たない。
- * ホッパーは SS ブロックに隣接するコンテナ（チェスト・樽等）とやり取りする。
+ * ホッパー・ドロッパー・ディスペンサー・クラフター等は
+ * SS ブロックに隣接するコンテナ（チェスト・樽等）とやり取りする。
  * このリスナーは各転送の送信元・受信先コンテナの隣接ブロックをスキャンする。
  *
  * <h3>自動インポート (SS がアイテムを吸収)</h3>
- * ホッパーが SS に隣接するコンテナにアイテムを投入する際、コンテナが満杯ならインベントリオーバーフローを防ぐため
+ * 搬送ブロックが SS に隣接するコンテナにアイテムを投入する際、コンテナが満杯ならインベントリオーバーフローを防ぐため
  * SS に吸収する。インベントリ状態が正確なようインライン実行する。
  *
  * <h3>自動エクスポート (SS がコンテナを補充)</h3>
- * ホッパーが SS 隣接コンテナからアイテムを引き出すとき、1 ティック遅延の
+ * 搬送ブロックが SS 隣接コンテナからアイテムを引き出すとき、1 ティック遅延の
  * {@link ExportSignTask} が SS の保管数量からコンテナを補充する。
  *
  * <h3>インベントリピックアップ</h3>
- * ホッパーが落としたアイテムエンティティを拾う場合、隣接 SS のアイテムと一致し
- * ホッパーが満杯なら余剰分を SS に吸収する。
+ * 搬送インベントリが落としたアイテムエンティティを拾う場合、隣接 SS のアイテムと一致し
+ * 搬送先が満杯なら余剰分を SS に吸収する。
  */
 public final class InventoryListener implements Listener {
 
     private static final Logger LOG = Logger.getLogger(InventoryListener.class.getName());
-
-    /** 隣接 StorageSign をスキャンする方向。 */
-    private static final BlockFace[] SCAN_FACES = {
-        BlockFace.UP, BlockFace.SOUTH, BlockFace.NORTH, BlockFace.EAST, BlockFace.WEST
-    };
-
-    /** 隣接 SS スキャン結果を 1 つにまとめ、ブロック状態の再取得を回避する。 */
-    private record SSMatch(Block block, Sign sign, StorageSign ss) {}
+    private static final SsAdjacencyResolver ADJACENCY_RESOLVER = SsAdjacencyResolver.defaultResolver();
 
     private final StorageSignCore plugin;
 
@@ -67,7 +64,7 @@ public final class InventoryListener implements Listener {
         this.plugin = plugin;
     }
 
-    // ── InventoryMoveItemEvent（ホッパー→コンテナ移送）──────────────────────────────
+    // ── InventoryMoveItemEvent（搬送ブロック→コンテナ移送）─────────────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onItemMove(InventoryMoveItemEvent event) {
@@ -81,39 +78,67 @@ public final class InventoryListener implements Listener {
         int maxStack = item.getMaxStackSize();
 
         // ── AUTO-IMPORT: destination container is adjacent to a matching SS ───
-        // When a hopper pushes an item into the container, absorb excess into SS.
+        // 搬送元がアイテムをコンテナへ押し込む際、余剰をSSへ吸収する。
         if (autoImport) {
             Inventory destination = event.getDestination();
             // Fast-fail for the common case: nothing to absorb when the destination is not at least one stack.
             if (destination != null && destination.containsAtLeast(item, maxStack)) {
-                SSMatch match = findAdjacentSSForInventory(destination, item);
-                if (match != null) {
+                Optional<SsAdjacencyMatch> matchOpt = resolveAdjacentStorageSignForInventory(destination, item);
+                if (matchOpt.isPresent()) {
+                    SsAdjacencyMatch match = matchOpt.get();
                     int absorbed = removeMatchingAmount(destination, item);
                     if (absorbed > 0) {
-                        match.ss().setAmount(match.ss().getAmount() + absorbed);
-                        match.ss().applyToSign(match.sign());
+                        match.storageSign().setAmount(match.storageSign().getAmount() + absorbed);
+                        match.storageSign().applyToSign(match.signState());
                         // Lambda form: string is only built when FINE logging is actually enabled.
-                        LOG.fine(() -> "Import: absorbed " + absorbed + " into SS at " + match.block().getLocation());
+                        LOG.fine(() -> "Import: absorbed " + absorbed + " into SS at " + match.signBlock().getLocation());
                     }
                 }
             }
         }
 
         // ── AUTO-EXPORT: source container is adjacent to a matching SS ─────────
-        // When a hopper pulls an item out of the container, schedule a refill from SS.
+        // 搬送元がコンテナからアイテムを引き出す際、SSからの補充をスケジュールする。
         if (autoExport) {
             Inventory source = event.getSource();
-            SSMatch match = findAdjacentSSForInventory(source, item);
-            if (match != null) {
-                if (pendingExports.add(match.block())) {
-                    new ExportSignTask(match.block(), source, item.clone(), pendingExports).runTask(plugin);
-                    LOG.fine(() -> "Export: scheduled refill from SS at " + match.block().getLocation());
+            Optional<SsAdjacencyMatch> matchOpt = resolveAdjacentStorageSignForInventory(source, item);
+            if (matchOpt.isPresent()) {
+                SsAdjacencyMatch match = matchOpt.get();
+                if (pendingExports.add(match.signBlock())) {
+                    new ExportSignTask(match.signBlock(), source, item.clone(), pendingExports).runTask(plugin);
+                    LOG.fine(() -> "Export: scheduled refill from SS at " + match.signBlock().getLocation());
                 }
             }
         }
     }
 
-    // ── InventoryPickupItemEvent (hopper picks up a dropped item entity) ──────
+    // ── BlockDispenseEvent（ドロッパー/ディスペンサー/クラフターの排出）──────────────
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockDispense(BlockDispenseEvent event) {
+        if (!ConfigLoader.getAutoExport()) return;
+        if (!isSupportedWorldDispenseSource(event.getBlock().getType())) return;
+
+        ItemStack item = event.getItem();
+        if (item == null || item.getAmount() <= 0) return;
+
+        Optional<SsAdjacencyMatch> matchOpt = resolveAdjacentStorageSign(event.getBlock(), item);
+        if (matchOpt.isEmpty()) return;
+
+        SsAdjacencyMatch match = matchOpt.get();
+        int before = match.storageSign().getAmount();
+        if (before <= 0) return;
+
+        // 残量不足時でもイベントはキャンセルしない。同期可能分のみ在庫を減らす。
+        int consumed = Math.min(before, item.getAmount());
+        if (consumed <= 0) return;
+
+        match.storageSign().setAmount(before - consumed);
+        match.storageSign().applyToSign(match.signState());
+        LOG.fine(() -> "Dispense: synchronized " + consumed + " from SS at " + match.signBlock().getLocation());
+    }
+
+    // ── InventoryPickupItemEvent（搬送インベントリがドロップを回収）────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onInventoryPickup(InventoryPickupItemEvent event) {
@@ -129,79 +154,62 @@ public final class InventoryListener implements Listener {
         // Fast-fail for the common case: nothing to absorb when the inventory is not at least one stack.
         if (!inventory.containsAtLeast(item, maxStack)) return;
 
-        SSMatch match = findAdjacentSSForInventory(inventory, item);
-        if (match == null) return;
+        Optional<SsAdjacencyMatch> matchOpt = resolveAdjacentStorageSignForInventory(inventory, item);
+        if (matchOpt.isEmpty()) return;
 
+        SsAdjacencyMatch match = matchOpt.get();
         int absorbed = removeMatchingAmount(inventory, item);
         if (absorbed > 0) {
-            match.ss().setAmount(match.ss().getAmount() + absorbed);
-            match.ss().applyToSign(match.sign());
+            match.storageSign().setAmount(match.storageSign().getAmount() + absorbed);
+            match.storageSign().applyToSign(match.signState());
             LOG.fine(() -> "ツインピックアップ 吸収: " + absorbed
-                     + " 個を SS に吸収 " + match.block().getLocation());
+                     + " 個を SS に吸収 " + match.signBlock().getLocation());
         }
     }
 
     // ── ヘルパー ──────────────────────────────────────────────────────────────────
 
     /**
-     * {@code container} の隣接ブロック（上/南/北/東/西）をスキャンし、
-     * {@code item} に一致する StorageSign を探す。
-     * <ul>
-    *   <li>UP 方向: 立て看板（{@code _SIGN}）のみ対象（{@code _WALL_*_SIGN} は不可）。</li>
-    *   <li>水平方向: スキャン方向に面した壁付き看板（通常/吊り）を対象。</li>
-     * </ul>
-     *
-     * @return ブロック・ Sign 状態・パース済み StorageSign を含む {@link SSMatch}。
-     *         見つからない場合は {@code null}。
+     * 指定ブロックに隣接し、{@code item} と一致する StorageSign を 1 件解決する。
      */
-    static SSMatch findAdjacentSS(Block container, ItemStack item) {
-        for (int i = 0; i < SCAN_FACES.length; i++) {
-            BlockFace face = SCAN_FACES[i];
-            Block adjacent = container.getRelative(face);
-
-            if (i == 0) {
-                // 上: 立て看板のみ
-                if (!MaterialRegistry.SIGN_MATERIALS.contains(adjacent.getType())) continue;
-            } else {
-                // 南/北/東/西: この方向に面した壁付き看板（通常/吊り）
-                if (!MaterialRegistry.WALL_SIGN_MATERIALS.contains(adjacent.getType())) continue;
-                if (!(adjacent.getBlockData() instanceof Directional directional)) continue;
-                if (directional.getFacing() != face) continue;
-            }
-
-            // ブロック状態を一度取得し、パースと更新の両方で再利用する
-            if (!(adjacent.getState() instanceof Sign sign)) continue;
-            StorageSign ss = StorageSign.fromSign(sign);
-            if (ss == null) continue;
-            if (!ss.isSimilar(item)) continue;
-
-            return new SSMatch(adjacent, sign, ss);
-        }
-        return null;
+    static Optional<SsAdjacencyMatch> resolveAdjacentStorageSign(Block container, ItemStack item) {
+        return ADJACENCY_RESOLVER.findFirst(
+            new SsAdjacencyQuery(container, item, SsAdjacencyPurpose.INVENTORY_TRANSFER)
+        );
     }
 
-    private static SSMatch findAdjacentSSForInventory(Inventory inventory, ItemStack item) {
-        if (inventory == null) return null;
+    private static Optional<SsAdjacencyMatch> resolveAdjacentStorageSignForInventory(Inventory inventory, ItemStack item) {
+        if (inventory == null) return Optional.empty();
         InventoryHolder holder = inventory.getHolder();
-        // null = 非物理インベントリ（クラフトテーブル等）、ミニカートは明示でスキップ。
-        // 他の非 BlockState ホルダーは instanceof チェーンを通らず null を返す。
-        if (holder == null || holder instanceof StorageMinecart) return null;
+        // null = 非物理インベントリ（クラフトテーブル等）、チェスト付きミニカートは対象外。
+        // 他の非 BlockState ホルダーは instanceof チェーンを通らず empty を返す。
+        if (holder == null || holder instanceof StorageMinecart) return Optional.empty();
+
+        if (holder instanceof HopperMinecart hopperMinecart) {
+            return resolveAdjacentStorageSign(hopperMinecart.getLocation().getBlock(), item);
+        }
 
         if (holder instanceof DoubleChest dc) {
             if (dc.getLeftSide() instanceof BlockState left) {
-                SSMatch match = findAdjacentSS(left.getBlock(), item);
-                if (match != null) return match;
+                Optional<SsAdjacencyMatch> match = resolveAdjacentStorageSign(left.getBlock(), item);
+                if (match.isPresent()) return match;
             }
             if (dc.getRightSide() instanceof BlockState right) {
-                return findAdjacentSS(right.getBlock(), item);
+                return resolveAdjacentStorageSign(right.getBlock(), item);
             }
-            return null;
+            return Optional.empty();
         }
 
         if (holder instanceof BlockState bs) {
-            return findAdjacentSS(bs.getBlock(), item);
+            return resolveAdjacentStorageSign(bs.getBlock(), item);
         }
-        return null;
+        return Optional.empty();
+    }
+
+    private static boolean isSupportedWorldDispenseSource(Material material) {
+        return material == Material.DROPPER
+            || material == Material.DISPENSER
+            || material == Material.CRAFTER;
     }
 
     /**
