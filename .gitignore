@@ -1,0 +1,28 @@
+# Maven build output
+/target/
+
+# Maven helper files
+dependency-reduced-pom.xml
+release.properties
+
+# Logs
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# VS Code workspace-local settings
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini

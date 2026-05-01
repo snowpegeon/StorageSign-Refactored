@@ -1,0 +1,137 @@
+package storagesign;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
+
+/**
+ * {@code config.yml} の全値をロード・キャッシュするクラス。
+ *
+ * <p>インストール済みの {@code config.yml} が引き続き動作するよう、
+ * 元プラグインのキー名と完全に一致させてある。
+ *
+ * <p>キー {@code no-permisson} （「i」欠き）は元プラグインのタイポをそのまま維持している。
+ */
+public final class ConfigLoader {
+
+    private static final Logger LOG = Logger.getLogger(ConfigLoader.class.getName());
+
+    // ── 設定キー定数 ────────────────────────────────────────────────────────────
+    private static final String KEY_NO_PERMISSION     = "no-permisson";  // 元プラグインのタイポ — 互換のためそのまま維持
+    private static final String KEY_LOG_LEVEL         = "log-level";
+    private static final String KEY_MANUAL_IMPORT     = "manual-import";
+    private static final String KEY_MANUAL_EXPORT     = "manual-export";
+    private static final String KEY_AUTO_IMPORT       = "auto-import";
+    private static final String KEY_AUTO_EXPORT       = "auto-export";
+    private static final String KEY_AUTOCOLLECT       = "autocollect";
+    private static final String KEY_HARDRECIPE        = "hardrecipe";
+    private static final String KEY_DIVIDE_LIMIT      = "divide-limit";
+    private static final String KEY_SNEAK_DIVIDE_LIMIT = "sneak-divide-limit";
+    private static final String KEY_MAX_STACK_SIZE    = "max-stack-size";
+    private static final String KEY_UNREGISTER_ON_EMPTY = "unregister-on-empty";
+    private static final String KEY_NO_BUD            = "no-bud";
+    private static final String KEY_FALLING_BLOCK     = "falling-block-itemSS";
+    private static final String KEY_BANNER_DEBUG      = "banner-debug";
+    private static final String KEY_IDENTIFIER_ALIASES = "item-identifier-aliases";
+    private static final String KEY_VIRTUAL_IDENTIFIERS = "virtual-item-identifiers";
+
+    // ── Cached values ─────────────────────────────────────────────────────────
+    private static String  noPermission;
+    private static String  logLevel;
+    private static boolean manualImport;
+    private static boolean manualExport;
+    private static boolean autoImport;
+    private static boolean autoExport;
+    private static boolean autocollect;
+    private static boolean hardrecipe;
+    private static int     divideLimit;
+    private static int     sneakDivideLimit;
+    private static int     maxStackSize;
+    private static boolean unregisterOnEmpty = true;
+    private static boolean noBud;
+    private static boolean fallingBlockItemSS;
+    private static boolean bannerDebug;
+    private static Map<String, String> identifierAliases = Map.of();
+    private static Map<String, String> virtualItemIdentifiers = Map.of();
+
+    private ConfigLoader() {}
+
+    /**
+     * デフォルト config がなければ生成し、全値をロードする。
+     */
+    public static void load(JavaPlugin plugin) {
+        plugin.saveDefaultConfig();
+        plugin.reloadConfig();
+        FileConfiguration cfg = plugin.getConfig();
+
+        noPermission      = cfg.getString(KEY_NO_PERMISSION, "You don't have permission");
+        logLevel          = cfg.getString(KEY_LOG_LEVEL, "INFO");
+        manualImport      = cfg.getBoolean(KEY_MANUAL_IMPORT, true);
+        manualExport      = cfg.getBoolean(KEY_MANUAL_EXPORT, true);
+        autoImport        = cfg.getBoolean(KEY_AUTO_IMPORT, true);
+        autoExport        = cfg.getBoolean(KEY_AUTO_EXPORT, true);
+        autocollect       = cfg.getBoolean(KEY_AUTOCOLLECT, true);
+        hardrecipe        = cfg.getBoolean(KEY_HARDRECIPE, false);
+        divideLimit       = cfg.getInt(KEY_DIVIDE_LIMIT, 345600);
+        sneakDivideLimit  = cfg.getInt(KEY_SNEAK_DIVIDE_LIMIT, 34560);
+        maxStackSize      = cfg.getInt(KEY_MAX_STACK_SIZE, 16);
+        unregisterOnEmpty = cfg.getBoolean(KEY_UNREGISTER_ON_EMPTY, true);
+        noBud             = cfg.getBoolean(KEY_NO_BUD, false);
+        fallingBlockItemSS = cfg.getBoolean(KEY_FALLING_BLOCK, false);
+        bannerDebug       = cfg.getBoolean(KEY_BANNER_DEBUG, false);
+        identifierAliases = readStringMap(cfg.getConfigurationSection(KEY_IDENTIFIER_ALIASES));
+        virtualItemIdentifiers = readStringMap(cfg.getConfigurationSection(KEY_VIRTUAL_IDENTIFIERS));
+
+        // ログレベルをプラグインのルートロガーに適用する
+        try {
+            Level level = Level.parse(logLevel.toUpperCase());
+            plugin.getLogger().setLevel(level);
+        } catch (IllegalArgumentException e) {
+            LOG.warning("config の log-level が不正です: " + logLevel + " — INFO を使用します");
+            plugin.getLogger().setLevel(Level.INFO);
+        }
+
+        LOG.fine("ConfigLoader loaded: auto-import=" + autoImport + ", auto-export=" + autoExport
+                 + ", no-bud=" + noBud);
+    }
+
+    // ── ゲッター ───────────────────────────────────────────────────────────────
+
+    public static String  getNoPermission()      { return noPermission;      }
+    public static String  getLogLevel()          { return logLevel;          }
+    public static boolean getManualImport()      { return manualImport;      }
+    public static boolean getManualExport()      { return manualExport;      }
+    public static boolean getAutoImport()        { return autoImport;        }
+    public static boolean getAutoExport()        { return autoExport;        }
+    public static boolean getAutocollect()       { return autocollect;       }
+    public static boolean getHardrecipe()        { return hardrecipe;        }
+    public static int     getDivideLimit()       { return divideLimit;       }
+    public static int     getSneakDivideLimit()  { return sneakDivideLimit;  }
+    public static int     getMaxStackSize()      { return maxStackSize;      }
+    public static boolean getUnregisterOnEmpty() { return unregisterOnEmpty; }
+    public static boolean getNoBud()             { return noBud;             }
+    public static boolean getFallingBlockItemSS(){ return fallingBlockItemSS;}
+    public static boolean getBannerDebug()       { return bannerDebug;       }
+    public static Map<String, String> getIdentifierAliases() { return identifierAliases; }
+    public static Map<String, String> getVirtualItemIdentifiers() { return virtualItemIdentifiers; }
+
+    private static Map<String, String> readStringMap(ConfigurationSection section) {
+        if (section == null) return Map.of();
+
+        Map<String, String> values = new HashMap<>();
+        for (String key : section.getKeys(false)) {
+            String value = section.getString(key);
+            if (key.isBlank() || value == null || value.isBlank()) {
+                continue;
+            }
+            values.put(key.trim(), value.trim());
+        }
+        return Collections.unmodifiableMap(values);
+    }
+}

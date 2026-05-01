@@ -1,1 +1,4 @@
-wacky\storagesign\item\PotionHelperTest.class
+storagesign\StorageSignTest.class
+storagesign\registry\LegacyNameRegistryTest.class
+storagesign\registry\DyeRegistryTest.class
+storagesign\registry\MaterialRegistryTest.class

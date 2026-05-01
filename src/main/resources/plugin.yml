@@ -1,13 +1,16 @@
-name: StorageSign
-main: wacky.storagesign.StorageSignCore
-version: ${version}
-description: StorageSign Plugin for Spigot. You can 2billion items storeing to wooden sign.
-author: wackyls6
-api-version: 1.21.4
-softdepend: [WorldGuard]
-website: https://github.com/wackyls6/StorageSign
+name: ${project.artifactId}
+main: storagesign.StorageSignCore
+version: ${project.version}
+description: Refactored StorageSign plugin for Spigot/Paper.
+api-version: '1.21.4'
+authors:
+    - hirot
+website: https://example.com/storagesign-refactored
+
 permissions:
     storagesign.*:
+        description: Grants all StorageSign permissions.
+        default: op
         children:
             storagesign.use: true
             storagesign.craft: true
@@ -15,21 +18,27 @@ permissions:
             storagesign.break: true
             storagesign.create: true
             storagesign.autocollect: true
+
     storagesign.use:
-        description: Allows you to use a storagesign
+        description: Allows using StorageSign interactions.
         default: true
+
     storagesign.craft:
-        description: Allows you to craft a storagesign
+        description: Allows crafting StorageSign items.
         default: true
+
     storagesign.place:
-        description: Allows you to place a storagesign
+        description: Allows placing StorageSign items as signs.
         default: true
+
     storagesign.break:
-        description: Allows you to break a storagesign
+        description: Allows breaking StorageSign blocks.
         default: true
+
     storagesign.create:
-        description: Allows you to create a storagesign
+        description: Allows creating new StorageSigns via sign edit.
         default: op
+
     storagesign.autocollect:
-        description: Collect your picked items
+        description: Allows automatic pickup/import behavior.
         default: true
