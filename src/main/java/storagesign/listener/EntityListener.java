@@ -105,7 +105,7 @@ public final class EntityListener implements Listener {
         if (!(event.getEntity() instanceof FallingBlock)) return;
 
         Block block = event.getBlock();
-        BlockEventListener.dropAttachedStorageSigns(block);
+        BlockEventListener.dropAttachedStorageSignsByAdjacency(block);
         LOG.fine(() -> "EntityChangeBlock: 隣接 StorageSign をドロップ " + block.getLocation());
     }
 }
