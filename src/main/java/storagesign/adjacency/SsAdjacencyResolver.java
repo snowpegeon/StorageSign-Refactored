@@ -31,9 +31,9 @@ public final class SsAdjacencyResolver {
      */
     public Optional<SsAdjacencyMatch> findFirst(SsAdjacencyQuery query) {
         for (SsAdjacencyRule rule : rules) {
-            List<SsAdjacencyMatch> matches = rule.findMatches(query);
-            if (!matches.isEmpty()) {
-                return Optional.of(matches.get(0));
+            Optional<SsAdjacencyMatch> match = rule.findFirstMatch(query);
+            if (match.isPresent()) {
+                return match;
             }
         }
         return Optional.empty();

@@ -2,6 +2,7 @@ package storagesign.adjacency;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 
@@ -9,6 +10,25 @@ import org.bukkit.block.BlockFace;
  * 立て看板（通常）と天井吊り看板（HANGING_SIGN）を扱う。
  */
 public final class StandingAndCeilingHangingRule implements SsAdjacencyRule {
+
+    @Override
+    public Optional<SsAdjacencyMatch> findFirstMatch(SsAdjacencyQuery query) {
+        Block container = query.containerBlock();
+
+        Block up = container.getRelative(BlockFace.UP);
+        if (AdjacencyRuleSupport.isStandingSign(up.getType())) {
+            SsAdjacencyMatch match = AdjacencyRuleSupport.toMatchIfStorageSign(up, query.item());
+            if (match != null) return Optional.of(match);
+        }
+
+        Block down = container.getRelative(BlockFace.DOWN);
+        if (AdjacencyRuleSupport.isCeilingHangingSign(down.getType())) {
+            SsAdjacencyMatch match = AdjacencyRuleSupport.toMatchIfStorageSign(down, query.item());
+            if (match != null) return Optional.of(match);
+        }
+
+        return Optional.empty();
+    }
 
     @Override
     public List<SsAdjacencyMatch> findMatches(SsAdjacencyQuery query) {
