@@ -1,6 +1,5 @@
 package storagesign.adjacency;
 
-import java.util.Locale;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -46,6 +45,7 @@ final class AdjacencyRuleSupport {
 
     private static String nameOf(Material material) {
         if (material == null) return "";
-        return material.name().toUpperCase(Locale.ROOT);
+        // Material#name() は既に英大文字の定数名を返す。
+        return material.name();
     }
 }
