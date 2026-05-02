@@ -9,6 +9,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.entity.ChestBoat;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
 import org.bukkit.event.EventHandler;
@@ -154,12 +155,20 @@ public final class InventoryListener implements Listener {
     private static Optional<SsAdjacencyMatch> resolveAdjacentStorageSignForInventory(Inventory inventory, ItemStack item) {
         if (inventory == null) return Optional.empty();
         InventoryHolder holder = inventory.getHolder();
-        // null = 非物理インベントリ（クラフトテーブル等）、チェスト付きミニカートは対象外。
+        // null = 非物理インベントリ（クラフトテーブル等）。
         // 他の非 BlockState ホルダーは instanceof チェーンを通らず empty を返す。
-        if (holder == null || holder instanceof StorageMinecart) return Optional.empty();
+        if (holder == null) return Optional.empty();
 
         if (holder instanceof HopperMinecart hopperMinecart) {
             return resolveAdjacentStorageSign(hopperMinecart.getLocation().getBlock(), item);
+        }
+
+        if (holder instanceof StorageMinecart storageMinecart) {
+            return resolveAdjacentStorageSign(storageMinecart.getLocation().getBlock(), item);
+        }
+
+        if (holder instanceof ChestBoat chestBoat) {
+            return resolveAdjacentStorageSign(chestBoat.getLocation().getBlock(), item);
         }
 
         if (holder instanceof DoubleChest dc) {
