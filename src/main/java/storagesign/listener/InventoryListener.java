@@ -11,7 +11,6 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
-import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -112,32 +111,6 @@ public final class InventoryListener implements Listener {
         }
     }
 
-    // ── BlockDispenseEvent（ドロッパー/ディスペンサー/クラフターの排出）──────────────
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBlockDispense(BlockDispenseEvent event) {
-        if (!ConfigLoader.getAutoExport()) return;
-        if (!isSupportedWorldDispenseSource(event.getBlock().getType())) return;
-
-        ItemStack item = event.getItem();
-        if (item == null || item.getAmount() <= 0) return;
-
-        Optional<SsAdjacencyMatch> matchOpt = resolveAdjacentStorageSign(event.getBlock(), item);
-        if (matchOpt.isEmpty()) return;
-
-        SsAdjacencyMatch match = matchOpt.get();
-        int before = match.storageSign().getAmount();
-        if (before <= 0) return;
-
-        // 残量不足時でもイベントはキャンセルしない。同期可能分のみ在庫を減らす。
-        int consumed = Math.min(before, item.getAmount());
-        if (consumed <= 0) return;
-
-        match.storageSign().setAmount(before - consumed);
-        match.storageSign().applyToSign(match.signState());
-        LOG.fine(() -> "Dispense: synchronized " + consumed + " from SS at " + match.signBlock().getLocation());
-    }
-
     // ── InventoryPickupItemEvent（搬送インベントリがドロップを回収）────────────────
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -204,12 +177,6 @@ public final class InventoryListener implements Listener {
             return resolveAdjacentStorageSign(bs.getBlock(), item);
         }
         return Optional.empty();
-    }
-
-    private static boolean isSupportedWorldDispenseSource(Material material) {
-        return material == Material.DROPPER
-            || material == Material.DISPENSER
-            || material == Material.CRAFTER;
     }
 
     /**
