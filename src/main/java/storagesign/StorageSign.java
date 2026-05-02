@@ -601,7 +601,10 @@ public final class StorageSign {
             if (!(meta instanceof BannerMeta bm)) return false;
             BannerMeta ominous = StorageSignCore.ominousBannerMeta;
             if (ominous == null) return false;
-            return bm.equals(ominous);
+            if (bm.equals(ominous)) return true;
+            // バージョン差分でコンポーネント表現が変わっても、実パターン一致なら互換として許容する。
+            return bm.numberOfPatterns() == ominous.numberOfPatterns()
+                && bm.getPatterns().equals(ominous.getPatterns());
         }
 
         // 看板アイテム: damage=1 のときは看板マテリアルのみ対象とし、ダメージ値が偶然

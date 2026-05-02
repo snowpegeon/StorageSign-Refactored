@@ -3,8 +3,11 @@ package storagesign;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.banner.Pattern;
+import org.bukkit.block.banner.PatternType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
@@ -77,6 +80,16 @@ public final class StorageSignCore extends JavaPlugin {
     // ── レイドバナー ───────────────────────────────────────────────────────────────
 
     private void loadOminousBanner() {
+        BannerMeta apiMeta = createOminousBannerMetaByApi();
+        if (apiMeta != null) {
+            ominousBannerMeta = apiMeta;
+            getLogger().info("レイドバナーメタを API でロードしました ("
+                             + apiMeta.numberOfPatterns() + " パターン)");
+            return;
+        }
+
+        getLogger().warning("API でレイドバナー構築に失敗したため、SNBT フォールバックを試行します");
+
         StorageSignNBTConfig nbtConfig = new StorageSignNBTConfig(this);
         if (!nbtConfig.isLoaded()) return;
 
@@ -104,6 +117,50 @@ public final class StorageSignCore extends JavaPlugin {
         } catch (Exception e) {
             getLogger().log(Level.WARNING, "レイドバナーのロード中に例外が発生しました", e);
         }
+    }
+
+    /**
+     * API で不吉なバナー（白バナー 8 パターン）を構築する。
+     * 成功時は BannerMeta、失敗時は null。
+     */
+    private BannerMeta createOminousBannerMetaByApi() {
+        try {
+            ItemStack banner = new ItemStack(Material.WHITE_BANNER);
+            ItemMeta itemMeta = banner.getItemMeta();
+            if (!(itemMeta instanceof BannerMeta bm)) return null;
+
+            bm.setPatterns(java.util.List.of(
+                createBannerPattern(DyeColor.CYAN, "RHOMBUS", "RHOMBUS_MIDDLE"),
+                createBannerPattern(DyeColor.LIGHT_GRAY, "STRIPE_BOTTOM"),
+                createBannerPattern(DyeColor.GRAY, "STRIPE_CENTER"),
+                createBannerPattern(DyeColor.LIGHT_GRAY, "BORDER"),
+                createBannerPattern(DyeColor.BLACK, "STRIPE_MIDDLE"),
+                createBannerPattern(DyeColor.LIGHT_GRAY, "HALF_HORIZONTAL"),
+                createBannerPattern(DyeColor.LIGHT_GRAY, "CIRCLE", "CIRCLE_MIDDLE"),
+                createBannerPattern(DyeColor.BLACK, "BORDER")
+            ));
+            return bm;
+        } catch (Throwable e) {
+            LOG.log(Level.WARNING, "API 経由でレイドバナー構築に失敗しました", e);
+        }
+        return null;
+    }
+
+    private Pattern createBannerPattern(DyeColor color, String... candidateNames) {
+        return new Pattern(color, resolvePatternType(candidateNames));
+    }
+
+    private PatternType resolvePatternType(String... candidateNames) {
+        for (String candidateName : candidateNames) {
+            try {
+                return PatternType.valueOf(candidateName);
+            } catch (IllegalArgumentException ignored) {
+                // バージョン差分で enum 名が変わるため、候補を順に試す。
+            }
+        }
+        throw new IllegalStateException(
+            "Unsupported banner pattern type names: " + java.util.Arrays.toString(candidateNames)
+        );
     }
 
     /**
