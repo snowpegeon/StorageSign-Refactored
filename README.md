@@ -143,7 +143,7 @@ Spigot/Paper 向け Minecraft プラグインです。
 | `divide-limit` | `345600` | 右クリック 1 回で取り出す最大アイテム数 |
 | `sneak-divide-limit` | `34560` | スニーク右クリック 1 回で取り出す最大アイテム数 |
 | `max-stack-size` | `16` | StorageSign アイテムのスタック上限 |
-| `unregister-on-empty` | `true` | 残数が 0 になったときに登録を解除するか |
+| `unregister-on-empty` | `false` | 残数が 0 になったときに登録を解除するか |
 | `no-bud` | `false` | BUD パルスによる看板破壊を防止する |
 
 ---

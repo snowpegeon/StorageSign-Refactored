@@ -53,7 +53,7 @@ public final class ConfigLoader {
     private static int     divideLimit;
     private static int     sneakDivideLimit;
     private static int     maxStackSize;
-    private static boolean unregisterOnEmpty = true;
+    private static boolean unregisterOnEmpty = false;
     private static boolean noBud;
     private static boolean fallingBlockItemSS;
     private static boolean bannerDebug;
@@ -81,7 +81,7 @@ public final class ConfigLoader {
         divideLimit       = cfg.getInt(KEY_DIVIDE_LIMIT, 345600);
         sneakDivideLimit  = cfg.getInt(KEY_SNEAK_DIVIDE_LIMIT, 34560);
         maxStackSize      = cfg.getInt(KEY_MAX_STACK_SIZE, 16);
-        unregisterOnEmpty = cfg.getBoolean(KEY_UNREGISTER_ON_EMPTY, true);
+        unregisterOnEmpty = cfg.getBoolean(KEY_UNREGISTER_ON_EMPTY, false);
         noBud             = cfg.getBoolean(KEY_NO_BUD, false);
         fallingBlockItemSS = cfg.getBoolean(KEY_FALLING_BLOCK, false);
         bannerDebug       = cfg.getBoolean(KEY_BANNER_DEBUG, false);

@@ -27,7 +27,7 @@ max-stack-size: 16
 
 # If true, when a registered StorageSign reaches 0 items it becomes unregistered (Empty).
 # If false, registration is kept at 0 and only cleared when the sign itself is broken.
-unregister-on-empty: true
+unregister-on-empty: false
 
 # Prevent BUD pulses from breaking adjacent StorageSigns
 no-bud: false
