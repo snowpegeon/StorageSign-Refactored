@@ -46,7 +46,7 @@ permissions:
 
     storagesign.give:
         description: Allows using /storagesigngive in creative mode.
-        default: op
+        default: true
 
     storagesign.autocollect:
         description: Allows automatic pickup/import behavior.
