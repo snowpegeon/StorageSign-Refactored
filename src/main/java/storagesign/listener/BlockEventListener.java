@@ -3,6 +3,7 @@ package storagesign.listener;
 import java.util.logging.Logger;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.DyeColor;
@@ -114,6 +115,12 @@ public final class BlockEventListener implements Listener {
 
         String firstLine = event.getLine(0);
         if (firstLine == null || !firstLine.equalsIgnoreCase("storagesign")) return;
+
+        // クリエイティブ時のみ、バニラ看板の手入力から SS 化を許可する。
+        if (event.getPlayer().getGameMode() == GameMode.CREATIVE) {
+            event.setLine(0, StorageSign.HEADER_LINE);
+            return;
+        }
 
         // バニラ看板から直接 StorageSign を作成することは禁止する。
         // 先頭行が "StorageSign" 指定なら内容に関わらずキャンセルする。
