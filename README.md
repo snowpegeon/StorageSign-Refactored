@@ -10,13 +10,13 @@ Spigot/Paper 向け Minecraft プラグインです。
 - [ベース版との差分（snowpegeon/StorageSign 比較）](#ベース版との差分snowpegeonstoragesign-比較)
   - [追加された機能](#追加された機能)
   - [削除・廃止された機能](#削除廃止された機能)
-  - [確認観点（漏れ防止）](#確認観点漏れ防止)
 - [ユーザー向けガイド](#ユーザー向けガイド)
   - [動作環境](#動作環境)
   - [インストール](#インストール)
   - [StorageSign の作り方](#storagesign-の作り方)
   - [基本的な使い方](#基本的な使い方)
   - [自動入出庫](#自動入出庫)
+  - [コマンド](#コマンド)
   - [権限一覧](#権限一覧)
   - [主な設定項目](#主な設定項目)
 - [開発者向けガイド](#開発者向けガイド)
@@ -46,6 +46,10 @@ Spigot/Paper 向け Minecraft プラグインです。
   - `MaterialRegistry` / `LegacyNameRegistry` / `DyeRegistry` により、素材解決と旧名互換を整理。
 - テストスイートを追加
   - `StorageSign` 本体とレジストリ・ポーション補助ロジックのユニットテストを整備。
+- `/storagesigngive`（エイリアス: `/ssgive`）コマンドを追加
+  - クリエイティブモードのプレイヤーが任意の識別子・数量・看板種類で StorageSign アイテムを直接取得できる。
+- ホッパー付きトロッコ・チェスト付きトロッコ・チェスト付きボートへの自動入出庫対応を追加
+  - `InventoryMoveItemEvent` の送信元・受信先としてこれらのエンティティインベントリを認識し、隣接 SS との自動インポート/エクスポートが機能する。
 
 ### 削除・廃止された機能
 
@@ -83,38 +87,70 @@ Spigot/Paper 向け Minecraft プラグインです。
 デフォルトのクラフトレシピ:
 
 ```
-[チェスト] [看板]  [チェスト]
-[看板]     [チェスト] [看板]
-[チェスト] [看板]  [チェスト]
+[チェスト]       [チェスト]         [チェスト]
+[チェスト]       [看板]             [チェスト]
+[チェスト]       [チェスト]         [チェスト]
 ```
 
-`config.yml` の `hardrecipe: true` にするとチェストの 1 つがエンダーチェストに変わります。
+`config.yml` の `hardrecipe: true` にすると下段中央のチェストがエンダーチェストに変わります。
 
 ### 基本的な使い方
 
 #### StorageSign を看板に設置する
 
 1. StorageSign アイテムを手に持ちます。
-2. チェストやシュルカーボックスなどの収納ブロックに隣接する壁またはブロックに看板を設置します。
-3. 看板を設置した瞬間に、隣接するコンテナの中身に基づいてアイテム種別と数量が自動で記録されます。
+2. 任意のブロックに看板として設置します。アイテムに保持されていた登録情報がそのまま書き込まれます。
+3. **空の StorageSign** の場合は、登録したいアイテムを手に持って看板を右クリックするとアイテム種別が記録されます。
+4. 以降は StorageSign に隣接するコンテナを対象に、ホッパー等の搬送ブロックによる自動入出庫が機能します。
 
 #### 手動インポート（右クリック）
 
-- 登録されたアイテムを手に持って StorageSign を右クリックすると、手持ちアイテムが隣接コンテナに格納されます。
-- スニーク（Shift）＋右クリックでスタック単位の格納も可能です。
+- 登録されたアイテムを手に持って StorageSign を右クリックすると、インベントリ内の合致するアイテムをすべて格納します。
+- スニーク（Shift）＋右クリックすると、手持ちスロットのアイテムのみを格納します。
 
 #### 手動エクスポート（右クリック）
 
-- 空手で StorageSign を右クリックすると、隣接コンテナからアイテムを取り出します。
-- 取り出す量は `divide-limit` / `sneak-divide-limit` で制御できます。
+- 空手（または登録内容と異なるアイテム）で StorageSign を右クリックすると、なるべく 1 スタック分のアイテムを足元にドロップします。
+- スニーク（Shift）＋右クリックすると、アイテムを 1 個のみドロップします。
 
 ### 自動入出庫
 
 | 機能 | 説明 | 設定キー |
 |---|---|---|
-| 自動インポート | 搬送ブロック（ホッパー/ドロッパー/ディスペンサー/クラフター/ホッパー付きトロッコ/チェスト付きトロッコ/チェスト付きボート）がアイテムを押し込むと StorageSign 経由でコンテナへ自動格納 | `auto-import` |
-| 自動エクスポート | 搬送ブロック（ホッパー/ドロッパー/ディスペンサー/クラフター/ホッパー付きトロッコ/チェスト付きトロッコ/チェスト付きボート）がアイテムを引き出す・排出すると StorageSign 経由で在庫同期 | `auto-export` |
-| 自動収集 | 登録アイテムを手に持った状態でドロップアイテムに触れると自動回収 | `autocollect` |
+| 自動インポート | 搬送ブロック（ホッパー/ドロッパー/ディスペンサー/クラフター/ホッパー付きトロッコ/チェスト付きトロッコ/チェスト付きボート）がアイテムをコンテナへ押し込む際、コンテナがすでに満杯なら超過分を隣接 StorageSign が吸収 | `auto-import` |
+| 自動エクスポート | 搬送ブロック（ホッパー/ドロッパー/ディスペンサー/クラフター/ホッパー付きトロッコ/チェスト付きトロッコ/チェスト付きボート）がコンテナからアイテムを引き出すと、隣接 StorageSign が保管数からコンテナを補充 | `auto-export` |
+| 自動収集 | 登録済みの StorageSign アイテムをメインハンドまたはオフハンドに持った状態でドロップアイテムに触れると、保管数に自動加算 | `autocollect` |
+
+### コマンド
+
+#### /storagesigngive（/ssgive）
+
+クリエイティブモードのプレイヤーに StorageSign アイテムを付与します。
+
+**使い方**
+
+```
+/storagesigngive <itemIdentifier> <amount> [signType]
+/ssgive <itemIdentifier> <amount> [signType]
+```
+
+| 引数 | 必須 | 説明 |
+|---|---|---|
+| `itemIdentifier` | ○ | アイテム識別子（例: `STONE`、`POTION:HEAL:0`、`ENCHBOOK:sharp:5`） |
+| `amount` | ○ | 保管数量（0 以上の整数） |
+| `signType` | - | 看板の素材（省略時: `OAK_SIGN`。例: `SPRUCE_SIGN`、`BIRCH_SIGN`） |
+
+**実行条件**
+
+- プレイヤーがクリエイティブモードであること
+- 権限 `storagesign.give`（デフォルト: 全員）
+
+**使用例**
+
+```
+/ssgive STONE 128
+/ssgive ENCHBOOK:sharp:5 10 OAK_SIGN
+```
 
 ### 権限一覧
 
@@ -125,7 +161,7 @@ Spigot/Paper 向け Minecraft プラグインです。
 | `storagesign.craft` | 全員 | クラフトの許可 |
 | `storagesign.place` | 全員 | 看板としての設置 |
 | `storagesign.break` | 全員 | StorageSign ブロックの破壊 |
-| `storagesign.create` | OP | 看板編集による新規作成 |
+| `storagesign.give` | 全員 | /storagesigngive（/ssgive）コマンドの使用 |
 | `storagesign.autocollect` | 全員 | 自動収集 |
 
 ### 主な設定項目
@@ -140,11 +176,12 @@ Spigot/Paper 向け Minecraft プラグインです。
 | `auto-export` | `true` | 自動エクスポート（搬送ブロック対応）の有効化 |
 | `autocollect` | `true` | ドロップアイテム自動収集の有効化 |
 | `hardrecipe` | `false` | 難易度の高いクラフトレシピを使用 |
-| `divide-limit` | `345600` | 右クリック 1 回で取り出す最大アイテム数 |
-| `sneak-divide-limit` | `34560` | スニーク右クリック 1 回で取り出す最大アイテム数 |
+| `divide-limit` | `345600` | StorageSign アイテム分割時に 1 枚の空 SS に割り当てる最大数量 |
+| `sneak-divide-limit` | `34560` | スニーク時の StorageSign 分割時に 1 枚の空 SS に割り当てる最大数量 |
 | `max-stack-size` | `16` | StorageSign アイテムのスタック上限 |
 | `unregister-on-empty` | `false` | 残数が 0 になったときに登録を解除するか |
 | `no-bud` | `false` | BUD パルスによる看板破壊を防止する |
+| `falling-block-itemSS` | `false` | 落下ブロック着地時に隣接する StorageSign をアイテム化してドロップするか |
 
 ---
 
@@ -156,8 +193,11 @@ Spigot/Paper 向け Minecraft プラグインです。
 src/
 ├── main/java/storagesign/
 │   ├── StorageSign.java          # データモデル（イミュータブル）
-│   ├── StorageSignCore.java      # プラグインメインクラス
+│   ├── StorageSignPlugin.java    # プラグインメインクラス
 │   ├── ConfigLoader.java         # config.yml のロード
+│   ├── adjacency/                # 看板とコンテナの隣接判定ルール群
+│   ├── command/
+│   │   └── SsGiveCommand.java         # /storagesigngive コマンド処理
 │   ├── config/
 │   │   └── StorageSignNBTConfig.java  # NBT 永続データ管理
 │   ├── item/
@@ -171,7 +211,7 @@ src/
 │   │   ├── LegacyNameRegistry.java   # レガシー識別子の解決
 │   │   └── MaterialRegistry.java     # Material の検索・解決
 │   └── task/
-│       └── ExportSignTask.java        # 非同期エクスポートタスク
+│       └── ExportSignTask.java        # 1-tick 遅延エクスポートタスク（同期）
 └── test/java/storagesign/        # 単体テスト
 ```
 
@@ -208,7 +248,7 @@ mvn test
 行 0: "StorageSign"
 行 1: アイテム識別子（例: STONE, POTION:HEAL:0）
 行 2: 保管数量（数値文字列）
-行 3: サマリー（"LC/スタック/個"）
+行 3: サマリー（例: "1LC 2s 3"、LC=ラージチェスト換算・s=スタック・残は個数）
 ```
 
 **アイテム識別子の形式**
@@ -219,7 +259,7 @@ mvn test
 | ポーション | `POTION:HEAL:0` |
 | スプラッシュポーション | `SPOTION:REGEN:1` |
 | 残留ポーション | `LPOTION:HEAL:2` |
-| エンチャント本 | `ENCHBOOK:sharpness:5` |
+| エンチャント本 | `ENCHBOOK:sharp:5` |
 | 不吉なビン | `OMINOUS_BOTTLE:2` |
 
 ### 設定の拡張
