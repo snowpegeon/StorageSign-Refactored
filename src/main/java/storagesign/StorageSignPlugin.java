@@ -1,19 +1,12 @@
 package storagesign;
 
-import java.util.Locale;
-import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.DyeColor;
-import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.block.banner.PatternType;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.recipe.CraftingBookCategory;
@@ -31,6 +24,7 @@ import storagesign.listener.PlayerInteractListener;
 import storagesign.listener.SignEditListenerFactory;
 import storagesign.listener.SignPhysicsListener;
 import storagesign.registry.MaterialRegistry;
+import storagesign.command.SsGiveCommand;
 
 /**
  * StorageSign プラグインのメインクラス。
@@ -47,14 +41,20 @@ import storagesign.registry.MaterialRegistry;
  */
 public final class StorageSignPlugin extends JavaPlugin {
 
-    private static final Logger LOG = Logger.getLogger(StorageSignPlugin.class.getName());
-
     /**
      * レイドバナー（白バナー パターン 8 枚）の BannerMeta。
      * 起動時に {@code storageSignNBT.yml} からロードする。
      * {@link StorageSign#getContents} および {@link StorageSign#isSimilar} から静的参照される。
      */
-    public static BannerMeta ominousBannerMeta = null;
+    private static BannerMeta ominousBannerMeta = null;
+
+    public static BannerMeta getOminousBannerMeta() {
+        return ominousBannerMeta;
+    }
+
+    public static void setOminousBannerMeta(BannerMeta meta) {
+        ominousBannerMeta = meta;
+    }
 
     @Override
     public void onEnable() {
@@ -74,6 +74,8 @@ public final class StorageSignPlugin extends JavaPlugin {
         // ── 4. イベントリスナー ────────────────────────────────────────────────────────
         registerListeners();
 
+        getCommand("storagesigngive").setExecutor(new SsGiveCommand());
+
         getLogger().info("StorageSign enabled. Sign types: " + MaterialRegistry.SIGN_MATERIALS.size()
                          + ", Shulker types: " + MaterialRegistry.SHULKER_BOX_MATERIALS.size());
     }
@@ -83,91 +85,12 @@ public final class StorageSignPlugin extends JavaPlugin {
         getLogger().info("StorageSign disabled.");
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        String name = command.getName();
-        if (!name.equalsIgnoreCase("storagesigngive") && !name.equalsIgnoreCase("ssgive")) {
-            return false;
-        }
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cこのコマンドはプレイヤー専用です。");
-            return true;
-        }
-
-        if (!player.hasPermission("storagesign.give")) {
-            player.sendMessage("§c" + ConfigLoader.getNoPermission());
-            return true;
-        }
-
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            player.sendMessage("§cこのコマンドはクリエイティブモードでのみ使用できます。");
-            return true;
-        }
-
-        if (args.length < 2 || args.length > 3) {
-            player.sendMessage("§e使い方: /" + label + " <itemIdentifier> <amount> [signType]");
-            player.sendMessage("§7例: /" + label + " STONE 128 OAK_SIGN");
-            return true;
-        }
-
-        String identifier = args[0].trim();
-        int amount;
-        try {
-            amount = Integer.parseInt(args[1].trim());
-        } catch (NumberFormatException e) {
-            player.sendMessage("§camount は整数で指定してください。");
-            return true;
-        }
-        if (amount < 0) {
-            player.sendMessage("§camount は 0 以上で指定してください。");
-            return true;
-        }
-
-        Material signMaterial = resolveSignMaterial(args.length >= 3 ? args[2] : "OAK_SIGN");
-        if (signMaterial == null || !MaterialRegistry.SIGN_MATERIALS.contains(signMaterial)) {
-            player.sendMessage("§c看板種類が不正です。例: OAK_SIGN, SPRUCE_SIGN");
-            return true;
-        }
-
-        StorageSign parsed = StorageSign.fromSignLines(
-            new String[]{StorageSign.HEADER_LINE, identifier, Integer.toString(amount)}
-        );
-        if (parsed == null || parsed.isUnregistered()) {
-            player.sendMessage("§citemIdentifier が不正です。");
-            return true;
-        }
-
-        ItemStack ssItem = StorageSign.createStorageSignItem(signMaterial, parsed.getLoreText(), 1);
-        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(ssItem);
-        for (ItemStack leftover : leftovers.values()) {
-            player.getWorld().dropItemNaturally(player.getLocation(), leftover);
-        }
-
-        player.sendMessage("§aStorageSign を付与しました: "
-            + signMaterial.name() + " / " + parsed.getLoreText());
-        return true;
-    }
-
-    private static Material resolveSignMaterial(String raw) {
-        if (raw == null || raw.isBlank()) return Material.OAK_SIGN;
-
-        String normalized = raw.trim().toUpperCase(Locale.ROOT);
-        if (normalized.startsWith("MINECRAFT:")) {
-            normalized = normalized.substring("MINECRAFT:".length());
-        }
-        if (!normalized.endsWith("_SIGN")) {
-            normalized = normalized + "_SIGN";
-        }
-        return Material.matchMaterial(normalized);
-    }
-
     // ── レイドバナー ───────────────────────────────────────────────────────────────
 
     private void loadOminousBanner() {
         BannerMeta apiMeta = createOminousBannerMetaByApi();
         if (apiMeta != null) {
-            ominousBannerMeta = apiMeta;
+            setOminousBannerMeta(apiMeta);
             getLogger().info("レイドバナーメタを API でロードしました ("
                              + apiMeta.numberOfPatterns() + " パターン)");
             return;
@@ -193,7 +116,7 @@ public final class StorageSignPlugin extends JavaPlugin {
             // NBT 文字列から WHITE_BANNER アイテムをデシリアライズし、BannerMeta を取得する
             ItemStack banner = deserializeBannerFromNbt(nbt);
             if (banner != null && banner.getItemMeta() instanceof BannerMeta bm) {
-                ominousBannerMeta = bm;
+                setOminousBannerMeta(bm);
                 getLogger().info("レイドバナーメタをロードしました ("
                                  + bm.numberOfPatterns() + " パターン)");
             } else {
@@ -226,7 +149,7 @@ public final class StorageSignPlugin extends JavaPlugin {
             ));
             return bm;
         } catch (Throwable e) {
-            LOG.log(Level.WARNING, "API 経由でレイドバナー構築に失敗しました", e);
+            getLogger().log(Level.WARNING, "API 経由でレイドバナー構築に失敗しました", e);
         }
         return null;
     }
@@ -258,7 +181,7 @@ public final class StorageSignPlugin extends JavaPlugin {
         try {
             return Bukkit.getItemFactory().createItemStack(nbt);
         } catch (Exception e) {
-            LOG.log(Level.WARNING, "ItemFactory 経由でバナー NBT のデシリアライズに失敗しました", e);
+            getLogger().log(Level.WARNING, "ItemFactory 経由でバナー NBT のデシリアライズに失敗しました", e);
         }
         return null;
     }

@@ -502,7 +502,7 @@ public final class StorageSign {
 
         // ── 白バナー（レイドバナー — 特殊 NBT が必要）──────────────────────────────
         if (material == Material.WHITE_BANNER && damage == 8) {
-            BannerMeta bannerMeta = StorageSignCore.ominousBannerMeta;
+            BannerMeta bannerMeta = StorageSignPlugin.getOminousBannerMeta();
             if (bannerMeta != null) {
                 ItemStack item = new ItemStack(material, Math.min(requestedAmount, material.getMaxStackSize()));
                 item.setItemMeta(bannerMeta.clone());
@@ -599,7 +599,7 @@ public final class StorageSign {
         // 白バナー（レイドバナー）
         if (material == Material.WHITE_BANNER && damage == 8) {
             if (!(meta instanceof BannerMeta bm)) return false;
-            BannerMeta ominous = StorageSignCore.ominousBannerMeta;
+            BannerMeta ominous = StorageSignPlugin.getOminousBannerMeta();
             if (ominous == null) return false;
             if (bm.equals(ominous)) return true;
             // バージョン差分でコンポーネント表現が変わっても、実パターン一致なら互換として許容する。
@@ -682,7 +682,7 @@ public final class StorageSign {
         // 白バナー（レイドバナー）
         if (mat == Material.WHITE_BANNER && meta instanceof BannerMeta bm) {
             if (bm.numberOfPatterns() == 8) {
-                StorageSignCore.ominousBannerMeta = (BannerMeta) bm.clone();
+                StorageSignPlugin.setOminousBannerMeta((BannerMeta) bm.clone());
                 return new StorageSign(mat, (short) 8, 0, null, null, false);
             }
         }
