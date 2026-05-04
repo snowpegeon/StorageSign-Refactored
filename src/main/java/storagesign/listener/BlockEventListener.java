@@ -120,10 +120,10 @@ public final class BlockEventListener implements Listener {
         // 通常の看板への影響を最小化する。
         // 負荷を抑えるため: 安価な数値チェック → 高コストなアイテム識別子解決の順に実施する。
 
-        // ① 行 2・行 3 が整数かどうかを先に確認（parseInt は map ルックアップより安価）
+        // ① 行 2 が整数かどうかを先に確認（parseInt は map ルックアップより安価）
+        // 行 3 はサマリー表示（例: "0LC 1s 36"）であり整数ではないためチェック対象外
         String line2 = event.getLine(2);
-        String line3 = event.getLine(3);
-        if (!isValidInteger(line2) || !isValidInteger(line3)) return;
+        if (!isValidInteger(line2)) return;
 
         // ② 行 1 が有効なアイテム識別子かどうかを確認（最もコストが高い処理）
         String line1 = event.getLine(1);
