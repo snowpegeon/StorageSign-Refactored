@@ -1,5 +1,5 @@
 name: ${project.artifactId}
-main: storagesign.StorageSignCore
+main: storagesign.StorageSignPlugin
 version: ${project.version}
 description: Refactored StorageSign plugin for Spigot/Paper.
 api-version: '1.21.4'

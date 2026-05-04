@@ -45,9 +45,9 @@ import storagesign.registry.MaterialRegistry;
  *
  * <p>イベント処理ロジックはすべて {@code listener.*} パッケージに割り当ててあり、このクラスはシンプルに保つ。
  */
-public final class StorageSignCore extends JavaPlugin {
+public final class StorageSignPlugin extends JavaPlugin {
 
-    private static final Logger LOG = Logger.getLogger(StorageSignCore.class.getName());
+    private static final Logger LOG = Logger.getLogger(StorageSignPlugin.class.getName());
 
     /**
      * レイドバナー（白バナー パターン 8 枚）の BannerMeta。

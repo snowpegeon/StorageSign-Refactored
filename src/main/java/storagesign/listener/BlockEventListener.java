@@ -19,7 +19,7 @@ import org.bukkit.block.sign.Side;
 
 import storagesign.ConfigLoader;
 import storagesign.StorageSign;
-import storagesign.StorageSignCore;
+import storagesign.StorageSignPlugin;
 import storagesign.adjacency.SsAdjacencyMatch;
 import storagesign.adjacency.SsAdjacencyPurpose;
 import storagesign.adjacency.SsAdjacencyQuery;
@@ -39,7 +39,7 @@ public final class BlockEventListener implements Listener {
     private static final Logger LOG = Logger.getLogger(BlockEventListener.class.getName());
     private static final SsAdjacencyResolver ADJACENCY_RESOLVER = SsAdjacencyResolver.defaultResolver();
 
-    public BlockEventListener(StorageSignCore plugin) {
+    public BlockEventListener(StorageSignPlugin plugin) {
     }
 
     // ── BlockBreakEvent ────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 
 import storagesign.ConfigLoader;
 import storagesign.StorageSign;
-import storagesign.StorageSignCore;
+import storagesign.StorageSignPlugin;
 import storagesign.registry.DyeRegistry;
 import storagesign.registry.MaterialRegistry;
 
@@ -41,7 +41,7 @@ public final class PlayerInteractListener implements Listener {
     private static final Material INK_SAC = Material.INK_SAC;
     private static final Material GLOW_INK_SAC = Material.GLOW_INK_SAC;
 
-    public PlayerInteractListener(StorageSignCore plugin) {
+    public PlayerInteractListener(StorageSignPlugin plugin) {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

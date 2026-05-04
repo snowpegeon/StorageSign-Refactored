@@ -22,7 +22,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 
 import storagesign.ConfigLoader;
-import storagesign.StorageSignCore;
+import storagesign.StorageSignPlugin;
 import storagesign.adjacency.SsAdjacencyMatch;
 import storagesign.adjacency.SsAdjacencyPurpose;
 import storagesign.adjacency.SsAdjacencyQuery;
@@ -55,12 +55,12 @@ public final class InventoryListener implements Listener {
     private static final Logger LOG = Logger.getLogger(InventoryListener.class.getName());
     private static final SsAdjacencyResolver ADJACENCY_RESOLVER = SsAdjacencyResolver.defaultResolver();
 
-    private final StorageSignCore plugin;
+    private final StorageSignPlugin plugin;
 
     /** このティックで ExportSignTask が既にスケジュール済みの SS ブロックを追跡する。 */
     private final Set<Block> pendingExports = new HashSet<>();
 
-    public InventoryListener(StorageSignCore plugin) {
+    public InventoryListener(StorageSignPlugin plugin) {
         this.plugin = plugin;
     }
 
