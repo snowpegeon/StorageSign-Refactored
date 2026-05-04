@@ -115,10 +115,20 @@ public final class BlockEventListener implements Listener {
         String firstLine = event.getLine(0);
         if (firstLine == null || !firstLine.equalsIgnoreCase("storagesign")) return;
 
-        if (event.getPlayer().hasPermission("storagesign.create")) {
-            event.setLine(0, "StorageSign");
-            return;
-        }
+        // バニラ看板から直接 StorageSign を作成することは禁止する。
+        // ただし「全行が有効な SS フォーマット」の場合のみキャンセルし、
+        // 通常の看板への影響を最小化する。
+        // 負荷を抑えるため: 安価な数値チェック → 高コストなアイテム識別子解決の順に実施する。
+
+        // ① 行 2・行 3 が整数かどうかを先に確認（parseInt は map ルックアップより安価）
+        String line2 = event.getLine(2);
+        String line3 = event.getLine(3);
+        if (!isValidInteger(line2) || !isValidInteger(line3)) return;
+
+        // ② 行 1 が有効なアイテム識別子かどうかを確認（最もコストが高い処理）
+        String line1 = event.getLine(1);
+        if (line1 == null || line1.isBlank()) return;
+        if (StorageSign.fromSignLines(new String[]{StorageSign.HEADER_LINE, line1, line2}) == null) return;
 
         event.getPlayer().sendMessage("§c" + ConfigLoader.getNoPermission());
         event.setCancelled(true);
@@ -160,6 +170,17 @@ public final class BlockEventListener implements Listener {
         StorageSign ss = StorageSign.fromSign(sign);
         if (ss == null) return;
         dropSingleStorageSign(block, type, ss);
+    }
+
+    /** 文字列が整数としてパース可能かどうかを判定する。null・空白は false を返す。 */
+    private static boolean isValidInteger(String s) {
+        if (s == null || s.isBlank()) return false;
+        try {
+            Integer.parseInt(s.trim());
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private static void dropSingleStorageSign(Block signBlock, Material signType, StorageSign ss) {

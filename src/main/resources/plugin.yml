@@ -17,7 +17,6 @@ permissions:
             storagesign.craft: true
             storagesign.place: true
             storagesign.break: true
-            storagesign.create: true
             storagesign.autocollect: true
 
     storagesign.use:
@@ -35,10 +34,6 @@ permissions:
     storagesign.break:
         description: Allows breaking StorageSign blocks.
         default: true
-
-    storagesign.create:
-        description: Allows creating new StorageSigns via sign edit.
-        default: op
 
     storagesign.autocollect:
         description: Allows automatic pickup/import behavior.
